@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Get started with MapView - Create a 2D map</title>
+
+    <style>
+        html,
+        body,
+        #viewDiv {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        #zoomLevel {
+            color: #ff0000;
+            font-size: 30px;
+        }
+    </style>
+
+    <link rel="stylesheet" href="https://js.arcgis.com/4.3/esri/css/main.css">
+    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.10.4/dijit/themes/claro/claro.css" /‌​>
+    <script src="https://js.arcgis.com/4.3/"></script>
+
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/views/SceneView",
+            "esri/layers/GraphicsLayer",
+            "esri/layers/MapImageLayer",
+            "esri/layers/TileLayer",
+            "esri/widgets/BasemapToggle",
+            "esri/widgets/ScaleBar",
+            "esri/widgets/BasemapGallery",
+            "dijit/form/Button",
+            "esri/Basemap",
+            "esri/layers/TileLayer",
+            "esri/core/Collection",
+            "dojo/Deferred",
+            "dojo/domReady!"
+        ], function(Map, MapView, SceneView, GraphicsLayer, MapImageLayer, TileLayer, BasemapToggle, ScaleBar, BasemapGallery, Button, Basemap, TileLayer, Collection, Deferred) {
+
+            var bmDefs = {
+                "Imagery": {
+                    thumbnailUrl: "http://www.arcgis.com/sharing/rest/content/items/86de95d4e0244cba80f0fa2c9403a7b2/info/thumbnail/tempimagery.jpg",
+                    baseLayers: [{
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
+                    },
+                    {
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer'
+                    }],
+                    esriName: "hybrid"
+                },
+
+                "Street Map": {
+                    thumbnailUrl: "http://www.arcgis.com/sharing/rest/content/items/d8855ee4d3d74413babfb0f41203b168/info/thumbnail/world_street_map.jpg",
+                    baseLayers: [{
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/World_Street_Map/MapServer'
+                    }],
+                    esriName: "streets-vector",
+                    esriNameIE: "streets"
+                },
+
+                "Light Grey": {
+                    thumbnailUrl: "http://www.arcgis.com/sharing/rest/content/items/8b3b470883a744aeb60e5fff0a319ce7/info/thumbnail/light_gray_canvas.jpg",
+                    baseLayers: [{
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Base/MapServer'
+                    },
+                    {
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Light_Gray_Reference/MapServer'
+                    }],
+                    esriName: "gray-vector",
+                    esriNameIE: "gray"
+                },
+
+                "Dark Grey": {
+                    thumbnailUrl: "http://www.arcgis.com/sharing/rest/content/items/25869b8718c0419db87dad07de5b02d8/info/thumbnail/DGCanvasBase.png",
+                    baseLayers: [{
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer'
+                    },
+                    {
+                      type: "ArcGISTiledLayer",
+                      url: 'http://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Reference/MapServer'
+                    }],
+                    esriName: "dark-gray-vector",
+                    esriNameIE: "dark-gray"
+                }
+            };
+
+            //var basemaps = addBasemaps(bmDefs);
+            var def = new Deferred();
+            var basemaps = new Collection();
+
+            for (key in bmDefs) {
+              var layers = [];
+              for (var i = 0; i < bmDefs[key].baseLayers.length; i++) {
+                var newLyr = new TileLayer({
+                  url: bmDefs[key].baseLayers[i].url
+                });
+                layers.push(newLyr);
+              }
+
+              var newBm = new Basemap({
+                baseLayers: layers,
+                title: key,
+                id: key,
+                thumbnailUrl: bmDefs[key].thumbnailUrl
+              });
+
+              newBm.load();
+              basemaps.add(newBm);
+            }
+
+            var interval = setInterval(function() {
+              if (basemaps.length == 4) {
+                def.resolve();
+                clearInterval(interval);
+              }
+            }, 500);
+
+            console.log(basemaps);
+
+            def.then(function() {
+              var map = new Map({
+                  basemap: basemaps.items[0]
+              });
+
+              // Uncomment me for 2D!
+              var view = new MapView({
+                  container: "viewDiv",
+                  map: map,
+                  center: [15, 65],
+                  constraints: {
+                      minZoom: 1,
+                      maxZoom: 19,
+                      snapToZoom: true
+                  }
+              });
+
+              var bmGal = new BasemapGallery({
+                view: view,
+                source: basemaps
+              });
+
+              view.ui.add(bmGal, {
+                position: 'top-right'
+              });
+
+              var scalebar = new ScaleBar({
+                  view: view,
+                  unit: 'metric',
+                  style: 'ruler'
+              });
+
+              view.ui.add(scalebar, {
+                  position: 'bottom-left'
+              });
+
+              console.log(map);
+              console.log(view);
+
+              view.watch('zoom', function(level) {
+                  document.getElementById('zoomLevel').innerHTML = Math.round(level);
+              });
+
+              var basemapToggle = new BasemapToggle({
+                  view: view, // The view that provides access to the map's "streets" basemap
+                  nextBasemap: "hybrid" // Allows for toggling to the "hybrid" basemap
+              });
+
+              // Add the BasemapToggle widget to the top right corner of the view
+              view.ui.add(basemapToggle, "top-right");
+            });
+        });
+    </script>
+</head>
+
+<body class="claro">
+    <div id="viewDiv"></div>
+    <div id="zoomLevel" style="position: fixed; top: 50px; left: 105px;"></div>
+    </div>
+</body>
+
+</html>
